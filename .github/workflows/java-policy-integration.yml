@@ -53,22 +53,26 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install Plan A SDK to local Maven repo
         working-directory: pulumi-policy/sdk/java
         run: mvn -q -B -ntp -DskipTests install
 
-      - name: Build pulumi-language-java and install to PATH
+      - name: Build pulumi-language-java into pulumi/bin
         working-directory: pulumi-java
         run: |
-          mkdir -p "$HOME/.pulumi/bin"
-          go build -o "$HOME/.pulumi/bin/pulumi-language-java" ./pkg/cmd/pulumi-language-java
-          echo "$HOME/.pulumi/bin" >> "$GITHUB_PATH"
+          mkdir -p "$GITHUB_WORKSPACE/pulumi/bin"
+          go build -o "$GITHUB_WORKSPACE/pulumi/bin/pulumi-language-java" ./pkg/cmd/pulumi-language-java
 
-      - name: Build pulumi CLI
+      - name: Build pulumi CLI into pulumi/bin
         working-directory: pulumi/pkg
         run: |
-          mkdir -p "$HOME/.pulumi/bin"
-          go build -o "$HOME/.pulumi/bin/pulumi" ./cmd/pulumi
+          mkdir -p "$GITHUB_WORKSPACE/pulumi/bin"
+          go build -o "$GITHUB_WORKSPACE/pulumi/bin/pulumi" ./cmd/pulumi
 
       - name: Yarn link nodejs SDK
         working-directory: pulumi/sdk/nodejs
