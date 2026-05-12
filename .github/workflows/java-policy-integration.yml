@@ -65,10 +65,10 @@ jobs:
           echo "$HOME/.pulumi/bin" >> "$GITHUB_PATH"
 
       - name: Build pulumi CLI
-        working-directory: pulumi
+        working-directory: pulumi/pkg
         run: |
           mkdir -p "$HOME/.pulumi/bin"
-          go build -o "$HOME/.pulumi/bin/pulumi" ./pkg/cmd/pulumi
+          go build -o "$HOME/.pulumi/bin/pulumi" ./cmd/pulumi
 
       - name: Yarn link nodejs SDK
         working-directory: pulumi/sdk/nodejs
