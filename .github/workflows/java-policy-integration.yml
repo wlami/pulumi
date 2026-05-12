@@ -2,14 +2,16 @@ name: java-policy-integration
 
 on:
   push:
-    branches: [master, feature/java-policy-integration-mvp]
+    branches: [master, feature/java-policy-integration-mvp, feature/java-policy-integration-c2-ci-green]
     paths:
       - 'tests/integration/policy/java_policy_pack/**'
+      - 'tests/integration/java_policy_program/**'
       - 'tests/integration/integration_policy_java_test.go'
       - '.github/workflows/java-policy-integration.yml'
   pull_request:
     paths:
       - 'tests/integration/policy/java_policy_pack/**'
+      - 'tests/integration/java_policy_program/**'
       - 'tests/integration/integration_policy_java_test.go'
       - '.github/workflows/java-policy-integration.yml'
 
@@ -22,11 +24,11 @@ jobs:
         with:
           path: pulumi
 
-      - name: Checkout wlami/pulumi-policy (Plan A SDK)
+      - name: Checkout wlami/pulumi-policy (Plan A + D Phase 1 SDK)
         uses: actions/checkout@v4
         with:
           repository: wlami/pulumi-policy
-          ref: feature/java-policy-sdk-mvp
+          ref: feature/java-policy-sdk-value-wrappers
           path: pulumi-policy
 
       - name: Checkout wlami/pulumi-java (Plan B language plugin)
@@ -48,17 +50,12 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install Plan A SDK to local Maven repo
+      - name: Install Plan D SDK to local Maven repo
         working-directory: pulumi-policy/sdk/java
         run: mvn -q -B -ntp -DskipTests install
 
@@ -73,19 +70,6 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/pulumi/bin"
           go build -o "$GITHUB_WORKSPACE/pulumi/bin/pulumi" ./cmd/pulumi
-
-      - name: Build + yarn-link nodejs SDK
-        working-directory: pulumi/sdk/nodejs
-        run: |
-          # The test env runs `yarn link @pulumi/pulumi` to consume this build.
-          # Without a built SDK the link target has no compiled output, so the
-          # TypeScript fixture fails with "Pulumi SDK has not been installed".
-          # Stub `go` so make ensure doesn't try to invoke a Go toolchain.
-          mkdir -p bin
-          ln -sf "$(which echo)" bin/go
-          PATH="./bin:$PATH" make ensure
-          PATH="./bin:$PATH" make build_package
-          yarn link
 
       - name: Run TestJavaPolicyPack
         working-directory: pulumi/tests
