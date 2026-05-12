@@ -15,7 +15,8 @@ public class Pack {
                 .description("Mandatory failing policy for Plan D Phase 2 integration test.")
                 .enforcementLevel(EnforcementLevel.MANDATORY)
                 .validate((rArgs, report) -> {
-                  if ("random:index:RandomPassword".equals(rArgs.type())) {
+                  // The engine sends the full Go type token: random:index/randomPassword:RandomPassword
+                  if (rArgs.type().startsWith("random:index") && rArgs.type().endsWith(":RandomPassword")) {
                     report.violation("RandomPassword resources are not allowed (java integration test)");
                   }
                 })
