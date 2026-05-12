@@ -1,0 +1,6 @@
+runtime:
+  name: java
+  options:
+    main: com.example.Pack
+version: 0.0.1
+description: Integration-test Java policy pack for Plan C MVP.
