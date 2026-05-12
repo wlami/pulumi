@@ -1,0 +1,10 @@
+name: java-policy-test-program
+description: YAML fixture for Plan D Phase 2 - exercises Java policy pack without TS SDK.
+runtime: yaml
+
+resources:
+  pw:
+    type: random:index:RandomPassword
+    properties:
+      length: 16
+      special: false

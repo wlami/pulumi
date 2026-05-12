@@ -11,12 +11,12 @@ public class Pack {
         PolicyPackArgs.builder()
             .enforcementLevel(EnforcementLevel.MANDATORY)
             .policies(ResourceValidationPolicy.builder()
-                .name("no-dynamic-resources")
-                .description("Mandatory failing policy for Plan C MVP integration test.")
+                .name("no-random-passwords")
+                .description("Mandatory failing policy for Plan D Phase 2 integration test.")
                 .enforcementLevel(EnforcementLevel.MANDATORY)
                 .validate((rArgs, report) -> {
-                  if ("pulumi-nodejs:dynamic:Resource".equals(rArgs.type())) {
-                    report.violation("dynamic Resource is not allowed (java integration test)");
+                  if ("random:index:RandomPassword".equals(rArgs.type())) {
+                    report.violation("RandomPassword resources are not allowed (java integration test)");
                   }
                 })
                 .build())
