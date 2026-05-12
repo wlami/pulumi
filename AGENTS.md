@@ -84,3 +84,13 @@ All commands assume you're at the repo root.
 - `pkg/codegen/schema/pulumi.json` → `mise exec -- make lint_pulumi_json`
 
 See subdirectory `AGENTS.md` files (`pkg/`, `sdk/nodejs/`, `sdk/python/`, `sdk/go/`) for package-specific instructions.
+
+## Java policy packs (Plan C integration)
+
+`tests/integration/policy/java_policy_pack/` is a fixture exercising the Java policy SDK + language-plugin path. The accompanying test `TestJavaPolicyPack` in `tests/integration/integration_policy_java_test.go` is build-tagged `java_policy_integration` and requires:
+
+- `pulumi-language-java` from the `wlami/pulumi-java` fork (Plan B branch), reachable via `PATH` and resolved before any system-installed pulumi-language-java
+- `com.pulumi:pulumi-policy:0.1.0-SNAPSHOT` from the `wlami/pulumi-policy` fork (Plan A branch), installed via `mvn install`
+- `mvn` on PATH, JDK 11+
+
+CI runs this via `.github/workflows/java-policy-integration.yml`, which checks out all three forks side-by-side. Local runs need `PATH=$HOME/.pulumi/bin:$PATH` to prefer the Plan B plugin over any pulumi installed via package manager. Run from the `tests/` directory (the test module's `go.mod` lives there): `cd tests && go test -tags java_policy_integration ./integration -run TestJavaPolicyPack`.
