@@ -1,0 +1,81 @@
+name: java-policy-integration
+
+on:
+  push:
+    branches: [master, feature/java-policy-integration-mvp]
+    paths:
+      - 'tests/integration/policy/java_policy_pack/**'
+      - 'tests/integration/integration_policy_java_test.go'
+      - '.github/workflows/java-policy-integration.yml'
+  pull_request:
+    paths:
+      - 'tests/integration/policy/java_policy_pack/**'
+      - 'tests/integration/integration_policy_java_test.go'
+      - '.github/workflows/java-policy-integration.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pulumi (this repo)
+        uses: actions/checkout@v4
+        with:
+          path: pulumi
+
+      - name: Checkout wlami/pulumi-policy (Plan A SDK)
+        uses: actions/checkout@v4
+        with:
+          repository: wlami/pulumi-policy
+          ref: feature/java-policy-sdk-mvp
+          path: pulumi-policy
+
+      - name: Checkout wlami/pulumi-java (Plan B language plugin)
+        uses: actions/checkout@v4
+        with:
+          repository: wlami/pulumi-java
+          ref: feature/language-plugin-policy-mode-mvp
+          path: pulumi-java
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Plan A SDK to local Maven repo
+        working-directory: pulumi-policy/sdk/java
+        run: mvn -q -B -ntp -DskipTests install
+
+      - name: Build pulumi-language-java and install to PATH
+        working-directory: pulumi-java
+        run: |
+          mkdir -p "$HOME/.pulumi/bin"
+          go build -o "$HOME/.pulumi/bin/pulumi-language-java" ./pkg/cmd/pulumi-language-java
+          echo "$HOME/.pulumi/bin" >> "$GITHUB_PATH"
+
+      - name: Build pulumi CLI
+        working-directory: pulumi
+        run: |
+          mkdir -p "$HOME/.pulumi/bin"
+          go build -o "$HOME/.pulumi/bin/pulumi" ./pkg/cmd/pulumi
+
+      - name: Yarn link nodejs SDK
+        working-directory: pulumi/sdk/nodejs
+        run: |
+          yarn install
+          yarn link
+
+      - name: Run TestJavaPolicyPack
+        working-directory: pulumi/tests
+        run: go test -tags java_policy_integration ./integration -run TestJavaPolicyPack -v -timeout 15m
