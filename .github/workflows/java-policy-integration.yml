@@ -74,10 +74,17 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/pulumi/bin"
           go build -o "$GITHUB_WORKSPACE/pulumi/bin/pulumi" ./cmd/pulumi
 
-      - name: Yarn link nodejs SDK
+      - name: Build + yarn-link nodejs SDK
         working-directory: pulumi/sdk/nodejs
         run: |
-          yarn install
+          # The test env runs `yarn link @pulumi/pulumi` to consume this build.
+          # Without a built SDK the link target has no compiled output, so the
+          # TypeScript fixture fails with "Pulumi SDK has not been installed".
+          # Stub `go` so make ensure doesn't try to invoke a Go toolchain.
+          mkdir -p bin
+          ln -sf "$(which echo)" bin/go
+          PATH="./bin:$PATH" make ensure
+          PATH="./bin:$PATH" make build_package
           yarn link
 
       - name: Run TestJavaPolicyPack
