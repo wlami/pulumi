@@ -1,0 +1,4 @@
+component: sdk/nodejs
+kind: fix
+body: Allow a linked local SDK's build scripts in the pnpm workspace root, keyed by its workspace-relative path
+time: 2026-10-15T00:00:00Z

@@ -116,13 +116,19 @@ func (pnpm *pnpmManager) Link(ctx context.Context, dir, packageName, path string
 //
 // Local directory dependencies are keyed by their lockfile depPath ("name@file:path"). pnpm >= 10.34.2 requires this
 // form (bare names are silently ignored), while versions before it reject it with ERR_PNPM_INVALID_VERSION_UNION.
+//
+// pnpm resolves both the config location and the depPath against the workspace root, so we write the setting there
+// instead of in the project directory.
 func (pnpm *pnpmManager) allowBuildScripts(
 	ctx context.Context, version semver.Version, dir, packageName, path string,
 ) error {
-	depPath := packageName + "@file:" + filepath.ToSlash(path)
+	root, depPath, err := workspaceDepPath(dir, packageName, path)
+	if err != nil {
+		return err
+	}
 
 	if version.GTE(semver.MustParse("11.0.0")) {
-		return pnpm.mergeProjectConfig(ctx, dir, "allowBuilds", func(current []byte) (any, error) {
+		return pnpm.mergeProjectConfig(ctx, root, "allowBuilds", func(current []byte) (any, error) {
 			var allowBuilds map[string]bool
 			_ = json.Unmarshal(current, &allowBuilds)
 			if allowBuilds == nil {
@@ -137,7 +143,7 @@ func (pnpm *pnpmManager) allowBuildScripts(
 	if version.GTE(semver.MustParse("10.34.2")) {
 		key = depPath
 	}
-	return pnpm.mergeProjectConfig(ctx, dir, "onlyBuiltDependencies", func(current []byte) (any, error) {
+	return pnpm.mergeProjectConfig(ctx, root, "onlyBuiltDependencies", func(current []byte) (any, error) {
 		var deps []string
 		_ = json.Unmarshal(current, &deps)
 		if !slices.Contains(deps, key) {
@@ -145,6 +151,28 @@ func (pnpm *pnpmManager) allowBuildScripts(
 		}
 		return deps, nil
 	})
+}
+
+// workspaceDepPath returns the directory to write project-level pnpm config to for the project in dir, and the
+// lockfile depPath of the local directory dependency at path, which is relative to dir.
+//
+// pnpm resolves both against the workspace root: on pnpm >= 11 project-level config is stored in
+// pnpm-workspace.yaml, so writing it in a directory that is a package of a workspace would create a second, nested
+// workspace file, and local directory dependencies are keyed relative to the workspace root. A project that is not
+// part of a workspace is its own root, where path is already relative to the right directory.
+func workspaceDepPath(dir, packageName, path string) (string, string, error) {
+	root, err := FindWorkspaceRoot(dir)
+	if err != nil {
+		if !errors.Is(err, ErrNotInWorkspace) {
+			return "", "", fmt.Errorf("failure while trying to find workspace root: %w", err)
+		}
+		return dir, packageName + "@file:" + filepath.ToSlash(path), nil
+	}
+	rel, err := filepath.Rel(root, filepath.Join(dir, path))
+	if err != nil {
+		return "", "", fmt.Errorf("making %q relative to the workspace root %q: %w", path, root, err)
+	}
+	return root, packageName + "@file:" + filepath.ToSlash(rel), nil
 }
 
 // mergeProjectConfig reads a pnpm project-level config setting (as JSON), applies update to it, and writes the result
